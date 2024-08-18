@@ -4,6 +4,7 @@ import "./globals.css";
 import Container from "./_components/Container";
 import { AuthWrapper } from "@/contexts/authContext";
 import { Toaster } from "react-hot-toast";
+import { PostWrapper } from "@/contexts/postsContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="black">
       <AuthWrapper>
-        <body className={`${inter.className}`}>
-          <Toaster position="bottom-center" />
-          <Container>{children}</Container>
-        </body>
+        <PostWrapper>
+          <body className={`${inter.className}`}>
+            <Toaster position="bottom-center" />
+            <Container>{children}</Container>
+          </body>
+        </PostWrapper>
       </AuthWrapper>
     </html>
   );

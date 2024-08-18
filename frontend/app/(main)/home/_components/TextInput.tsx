@@ -1,36 +1,42 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, forwardRef } from "react";
 
-function TextInput({ ref }: { ref: React.RefObject<HTMLTextAreaElement> }) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-
-    if (textarea) {
-      const resizeTextarea = () => {
-        textarea.style.height = "auto"; // Reset height
-        textarea.style.height = `${textarea.scrollHeight}px`; // Adjust height
-      };
-
-      textarea.addEventListener("input", resizeTextarea);
-
-      // Initial resize
-      resizeTextarea();
-
-      return () => {
-        textarea.removeEventListener("input", resizeTextarea);
-      };
-    }
-  }, []);
-
-  return (
-    <textarea
-      name="content"
-      placeholder="What is happening?!"
-      className="w-full bg-base-100 block focus:outline-none resize-none overflow-hidden"
-      ref={ref}
-    />
-  );
+interface TextInputProps extends Omit<React.ComponentProps<"textarea">, "ref"> {
+  className?: string;
 }
+
+const TextInput = forwardRef<HTMLTextAreaElement, TextInputProps>(
+  (props, ref) => {
+    useEffect(() => {
+      const textarea = ref && "current" in ref ? ref.current : null;
+
+      if (textarea) {
+        const resizeTextarea = () => {
+          textarea.style.height = "auto";
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        };
+
+        textarea.addEventListener("input", resizeTextarea);
+        resizeTextarea();
+
+        return () => {
+          textarea.removeEventListener("input", resizeTextarea);
+        };
+      }
+    }, [ref]);
+
+    return (
+      <textarea
+        name="content"
+        {...props}
+        ref={ref}
+        className={`w-full bg-base-100 block focus:outline-none resize-none overflow-hidden ${
+          props.className || ""
+        }`}
+      />
+    );
+  }
+);
+
+TextInput.displayName = "TextInput";
 
 export default TextInput;

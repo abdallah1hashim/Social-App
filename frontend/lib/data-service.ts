@@ -1,42 +1,19 @@
 "use server";
-import { BASE } from "@/config";
+import { PostT, PublicUserT } from "@/types";
 import { customFetch } from "./helpers";
 
-type UserType = {
-  user_id: number;
-  name: string;
-  pfp: string;
-  username: string;
-};
 type getPublicUserDataType = {
   error?: string | null;
-  user?: UserType;
+  user?: PublicUserT;
 };
 
 export async function getPublicUserData(
-  id: number,
-  accessToken: string | null,
-  refreshToken: string | null
+  id: number
 ): Promise<getPublicUserDataType> {
   try {
-    const { res, newAccess } = await customFetch(
-      `api.user/${id}/`,
-      accessToken,
-      refreshToken,
-      "GET",
-      {},
-      "force-cache",
-      {
-        tags: ["user"],
-      }
-    );
-
-    if (newAccess) localStorage.setItem("access", accessToken);
-
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-
+    const res = await customFetch(`api.user/${id}/`, "GET", {}, "force-cache", {
+      tags: ["user"],
+    });
     const data = await res.json();
     return { error: null, user: data };
   } catch (error: any) {
@@ -44,13 +21,22 @@ export async function getPublicUserData(
     return { error: error.message };
   }
 }
-export async function getPosts() {
+export async function getPosts(): Promise<PostT[]> {
   try {
-    const res = await customFetch("api/posts/");
+    const res = await customFetch("api/posts/", "GET", undefined, undefined, {
+      revalidate: 60 * 10,
+      tags: ["posts"],
+    });
     const data = await res.json();
-    console.log(res);
+    if (!res.ok) {
+      throw new Error(`Request failed with status ${res.status}`);
+    }
     return data;
-  } catch (error) {
-    return error;
+  } catch (error: any) {
+    console.error("Failed to fetch posts:", error);
+    throw new Error(error?.message || "Failed to fetch posts");
   }
+}
+async function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

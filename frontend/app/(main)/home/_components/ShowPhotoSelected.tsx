@@ -36,10 +36,11 @@ function ShowPhotoSelected({
         <div className="relative h-auto w-full py-4  overflow-hidden">
           <ClearButton onClick={handleClearPhoto} />
           <div className="rounded-md">
-            <img
+            <Image
               src={fileUrl}
               alt="Selected photo"
-              layout="intrinsic"
+              width={0}
+              height={0}
               objectFit="cover"
               className="w-full h-full rounded-2xl"
             />

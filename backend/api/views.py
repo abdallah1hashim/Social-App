@@ -6,6 +6,7 @@ from rest_framework import generics, status
 from .serializers import PostSerializer, UserPublicSerializer
 from .models import Post
 from users.models import User
+from .permissions import IsOwner
 
 # Create your views here.
 
@@ -16,7 +17,7 @@ class PostListCreateView(generics.ListCreateAPIView):
 
     def get(self, request, *args, **kwargs):
         print(request.user)
-        print(request.headers)
+
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -29,6 +30,7 @@ post_list_create_view = PostListCreateView.as_view()
 class RetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
+    permission_classes = [IsOwner]
 
 
 retrieve_update_destroy_post_view = RetrieveUpdateDestroyAPIView.as_view()

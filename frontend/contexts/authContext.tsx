@@ -1,52 +1,58 @@
 "use client";
 import { deleteSession } from "@/lib/session";
-import { PublicUserT } from "@/types";
-import { redirect } from "next/navigation";
+import { Payload, PublicUserT } from "@/types";
+import { jwtDecode } from "jwt-decode";
 import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 type AuthContextType = {
-  accessToken: string | null;
-  refreshToken: string | null;
   user: PublicUserT | null;
   setUser: (user: PublicUserT | null) => void;
+  getUserFromToken: () => PublicUserT | null;
   logout: () => void;
-  setAuthTokens: (accessToken: string, refreshToken: string) => void;
 };
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const router = useRouter();
   const [user, setUser] = useState<PublicUserT | null>(null);
   useEffect(() => {
-    const storedAccessToken = localStorage.getItem("access");
-    const storedRefreshToken = localStorage.getItem("refresh");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedAccessToken) setAccessToken(storedAccessToken);
-    if (storedRefreshToken) setRefreshToken(storedRefreshToken);
-    if (storedUser) setUser(JSON.parse(storedUser));
+    const user = getUserFromToken();
+    if (user) {
+      setUser(user);
+    }
   }, []);
-  const setAuthTokens = (accessToken: string, refreshToken: string) => {
-    setAccessToken(accessToken);
-    setRefreshToken(refreshToken);
-    localStorage.setItem("access", accessToken);
-    localStorage.setItem("refresh", refreshToken);
+  const getUserFromToken = (): PublicUserT | null => {
+    const storedAccessToken = Cookies.get("access");
+
+    if (!storedAccessToken) return null;
+
+    try {
+      const decodedData: Payload = jwtDecode(storedAccessToken);
+      return {
+        username: decodedData.username,
+        name: decodedData.name,
+        id: decodedData.id,
+        pfp: `http://localhost:8000/${decodedData.pfp}`,
+      };
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
   };
   const logout = async () => {
     await deleteSession();
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
+    router.push("/login");
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        accessToken,
-        refreshToken,
-        setAuthTokens,
         user,
         setUser,
+        getUserFromToken,
         logout,
       }}
     >

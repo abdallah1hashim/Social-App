@@ -1,28 +1,39 @@
 "use client";
-import { PostT } from "@/types";
+import { useEffect, useOptimistic, useState } from "react";
 import PostButton from "./PostButton";
 import { toggleLike } from "@/actions/PostActions";
 import toast from "react-hot-toast";
+import { PostT } from "@/types";
 
-function PostActions({ post }: { post: PostT }) {
-  console.log(post.is_liked);
+function PostActions({ post: initialPost }: { post: PostT }) {
+  const [optimisticPost, setOptimisticPost] = useState(initialPost);
+
+  const handleLikeToggle = async (inc: 1 | -1) => {
+    setOptimisticPost((prev) => ({
+      ...prev,
+      is_liked: inc === 1,
+      likes_count: prev.likes_count + inc,
+    }));
+
+    const result = await toggleLike(initialPost.pk, inc);
+
+    if (!result.success) {
+      setOptimisticPost((prev) => ({
+        ...prev,
+        is_liked: inc !== 1,
+        likes_count: prev.likes_count - inc,
+      }));
+      toast.error(result.message || "Failed to toggle like");
+    }
+  };
+
   return (
-    <div className="flex gap-24 w-full  pt-3 ">
-      <PostButton varriant="comment" count={post.comments_count} />
-      <PostButton varriant="repost" count={0} />
+    <div className="flex gap-24 w-full pt-3">
       <PostButton
-        varriant="like"
-        count={post.likes_count}
-        isLiked={post.is_liked}
-        onClick={async () => {
-          const data = await toggleLike(post.pk, 1);
-          if (!data.success) {
-            toast.error(data.error);
-          }
-        }}
-        secondOncllick={async () => {
-          const updatedLikes = await toggleLike(post.pk, -1);
-        }}
+        variant="like"
+        count={optimisticPost.likes_count}
+        isLiked={optimisticPost.is_liked}
+        onClick={() => handleLikeToggle(optimisticPost.is_liked ? -1 : 1)}
       />
     </div>
   );

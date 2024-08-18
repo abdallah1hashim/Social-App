@@ -1,46 +1,25 @@
 "use server";
 import { customFetch } from "@/lib/helpers";
 import { CreatePostFormSchema } from "@/lib/Validators";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createPostAction(formData: FormData) {
-  // Validate content field
-  const validatedFields = CreatePostFormSchema.safeParse({
-    content: formData.get("content"),
-  });
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
-  if (
-    !formData.has("photo") ||
-    (formData.get("photo") instanceof File && formData.get("photo").size === 0)
-  ) {
-    formData.delete("photo");
-  }
-
-  // Append author ID to FormData
-  const Authorization = await headerAuth();
   try {
-    const res = await fetch("http://127.0.0.1:8000/api/posts/", {
-      method: "POST",
-      body: formData, // Send FormData directly
-      headers: {
-        Authorization: Authorization.Authorization,
-      },
-    });
+    console.log(formData);
+    const res = await customFetch("api/posts/", "POST", formData);
 
     if (!res.ok) {
-      console.error("Failed to create post:", res.statusText);
-      return { errors: { form: "Failed to create post" } };
+      const errorData = await res.json();
+      console.error("Failed to create post:", errorData);
+      return { errors: { form: errorData.message || "Failed to create post" } };
     }
 
     const data = await res.json();
-
+    revalidatePath("/home");
     return { success: true, data };
   } catch (error) {
     console.error("Network error:", error);
-    return { errors: { form: "Network error" } };
+    return { errors: { form: "Network error. Please try again later." } };
   }
 }
 
@@ -54,10 +33,40 @@ export async function toggleLike(postId: number, inc: 1 | -1) {
       },
       "no-cache"
     );
-    console.log(res);
-    return await res.json();
+    if (!res.ok) {
+      const errorData = await res.json();
+      return {
+        success: false,
+        message: errorData.message || "Failed to toggle like",
+      };
+    }
+    const data = await res.json();
+    revalidateTag("posts");
+    return { success: true, data };
   } catch (error: any) {
     console.error("Error toggling like:", error.message);
-    return { success: false, message: error.message };
+    return {
+      success: false,
+      message: "Network error. Please try again later.",
+    };
+  }
+}
+export async function deletePost(postId: number) {
+  try {
+    const res = await customFetch(`api/posts/${postId}/`, "DELETE");
+
+    if (res.status === 204 || res.ok) {
+      revalidateTag("posts");
+      return { success: true };
+      revalidateTag("posts");
+    }
+    const errorData = await res.text();
+    return {
+      success: false,
+      message: errorData || "Failed to delete post",
+    };
+  } catch (error: any) {
+    console.error("Error deleting post :", error.message);
+    throw new Error("Network error. Please try again later.");
   }
 }

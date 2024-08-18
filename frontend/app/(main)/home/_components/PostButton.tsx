@@ -11,17 +11,16 @@ import {
 } from "@heroicons/react/16/solid";
 import { useState } from "react";
 
-type VarriantT = "like" | "repost" | "comment";
+type variantT = "like" | "repost" | "comment";
 
 type PostButtonProps = Omit<
   React.ComponentPropsWithoutRef<"button">,
   "onClick"
 > & {
-  varriant: VarriantT;
+  variant: variantT;
   count: number;
-  onClick: () => void;
+  onClick?: () => void;
   isLiked?: boolean;
-  secondOncllick?: () => void;
   className?: string;
 };
 
@@ -52,35 +51,33 @@ const iconComponentsSolid = {
 };
 
 export default function PostButton({
-  varriant,
+  variant,
   count,
   onClick,
   isLiked,
-  secondOncllick,
   className,
 }: PostButtonProps) {
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  const IconComponent = iconComponents[varriant];
-  const IconComponentSolid = iconComponentsSolid[varriant];
-  const { bg, text } = colorClasses[varriant];
+  const IconComponent = iconComponents[variant];
+  const IconComponentSolid = iconComponentsSolid[variant];
+  const { bg, text } = colorClasses[variant];
   return (
     <button
-      className={`flex items-center space-x-[-2px] ${
-        className ? className : ""
-      }`}
-      onMouseOver={() => setIsHovered(true)}
-      onMouseOut={() => setIsHovered(false)}
-      onClick={isLiked ? secondOncllick : onClick}
+      className={`flex items-center space-x-[-2px] ${className || ""}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick && onClick}
+      type={onClick ? "button" : "submit"}
     >
       <span
-        className={`w-8 h-8 p-2 rounded-full ${
-          isHovered || isLiked ? `${text}` : ""
-        } ${isHovered ? `${bg}` : ""}`}
+        className={`w-8 h-8 p-1 rounded-full ${
+          isHovered || isLiked ? text : ""
+        } ${isHovered ? bg : ""}`}
       >
         {isLiked ? <IconComponentSolid /> : <IconComponent />}
       </span>
-      <span className={`${isHovered ? text : ""}`}>{count}</span>
+      <span className={(isHovered ? text : "") + " text-sm"}>{count}</span>
     </button>
   );
 }

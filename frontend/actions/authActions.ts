@@ -1,22 +1,15 @@
 "use server";
 
 import { BASE } from "@/config";
-import { createSession } from "@/lib/session";
-import { PublicUserT } from "@/types";
+import { createSession, setTokens } from "@/lib/session";
+import { Payload, PublicUserT } from "@/types";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 
-type Payload = JwtPayload & PublicUserT;
-
 type LoginResponse = {
-  error?: string | null | undefined;
-  data?: {
-    access: string;
-    refresh: string;
-    decodedData: Payload;
-  };
+  data?: {};
 };
 
-export const login = async (formData: FormData): Promise<LoginResponse> => {
+export const login = async (formData: FormData): Promise<void> => {
   try {
     // 1. Login
     const res = await fetch(`${BASE}api/token/`, {
@@ -26,28 +19,27 @@ export const login = async (formData: FormData): Promise<LoginResponse> => {
 
     if (!res.ok) {
       const errorData = await res.json();
-      return { error: errorData.detail || "Login failed" };
+      throw new Error(errorData.detail || "Login failed");
     }
 
     const { access, refresh } = await res.json();
     if (!access || !refresh) {
       throw new Error("Authorization failed: Missing tokens");
     }
+    setTokens(access, refresh);
 
     const decodedData: Payload = jwtDecode(access);
 
-    if (!decodedData?.user_id) {
-      return { error: "Invalid token payload" };
+    if (!decodedData?.id) {
+      throw new Error("Invalid token payload");
     }
 
     // 3. Create Session
-    await createSession(decodedData.user_id);
+    await createSession(decodedData.id);
     if (!access) {
       throw new Error("Faild to obtain Token");
     }
-
-    return { data: { access, refresh, decodedData } };
   } catch (error: any) {
-    return { error: error.message || "An unexpected error occurred" };
+    throw new Error(error.message || "An unexpected error occurred");
   }
 };
